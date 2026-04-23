@@ -1,17 +1,15 @@
 # USER.md - About Your Human
 
-_Learn about the person you're helping. Update this as you go._
-
-- **Name:**
-- **What to call them:**
-- **Pronouns:** _(optional)_
-- **Timezone:**
-- **Notes:**
+- **Name:** Huy Pham
+- **What to call them:** Huy (hoặc "mày" kiểu bạn bè)
+- **Pronouns:** he/him
+- **Timezone:** America/New_York (EDT)
+- **Telegram:** @huypham1989 (813960265)
 
 ## Context
 
-_(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
-
----
-
-The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
+- Dev — làm việc với code, server, tools
+- Đang dùng OpenClaw + PinchChat để chat với AI
+- Thích giao tiếp thẳng thắn, không rườm rà
+- Repo GitHub: `ngochuy13/intern-dev`
+- Server local: Raspberry Pi hoặc Linux box tại `172.168.50.99`

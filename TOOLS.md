@@ -1,40 +1,49 @@
-# TOOLS.md - Local Notes
+# TOOLS.md - Dev Quyền's Setup Notes
 
-Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
+## Skills Hiện Có
 
-## What Goes Here
+### 🛠️ Developer Skills
+- `api-tester` — test API endpoints
+- `architecture` — system architecture review
+- `code-review` / `code-reviewer` — review code
+- `debug` / `debug-assistant` — debug issues
+- `deploy-checklist` — checklist trước khi deploy
+- `doc-generator` / `documentation` — generate docs
+- `git-helper` — git workflows
+- `incident-response` — xử lý incident
+- `standup` — daily standup helper
+- `system-design` — thiết kế hệ thống
+- `tech-debt` — theo dõi tech debt
+- `testing-strategy` — chiến lược test
 
-Things like:
+### 📦 Generic Skills (All Users)
+- `calendar-helper` — quản lý lịch
+- `document-summarizer` — tóm tắt tài liệu
+- `drive-reader` — đọc Google Drive
+- `email-assistant` — soạn/đọc email
+- `exa-web-search` / `web-search` — tìm kiếm web
+- `file-manager` — quản lý file
+- `gmail-reader` — đọc Gmail
+- `memory-keeper` — lưu memory
+- `note-taker` — ghi chú
+- `presentation-maker` — tạo presentation
+- `printer-control` — điều khiển máy in
+- `sheets-reader` / `spreadsheet-helper` — đọc Google Sheets
+- `translator` — dịch thuật
+- `clawchief` — orchestration
 
-- Camera names and locations
-- SSH hosts and aliases
-- Preferred voices for TTS
-- Speaker/room names
-- Device nicknames
-- Anything environment-specific
+### 🔧 System
+- `autonomous-intern-onboarding` — onboarding flow
 
-## Examples
+## Server Info
+- **IP:** `172.168.50.99`
+- **Gateway:** `ws://172.168.50.99:18789`
+- **PinchChat:** `http://172.168.50.99:3000`
+- **Gateway Token:** stored in `/root/openclaw/openclaw.json`
 
-```markdown
-### Cameras
+## Services Running
+- `openclaw.service` — OpenClaw Gateway (systemd)
+- `pinchchat.service` — PinchChat UI on port 3000 (systemd)
 
-- living-room → Main area, 180° wide angle
-- front-door → Entrance, motion-triggered
-
-### SSH
-
-- home-server → 192.168.1.100, user: admin
-
-### TTS
-
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
-```
-
-## Why Separate?
-
-Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
-
----
-
-Add whatever helps you do your job. This is your cheat sheet.
+## Repo
+- `https://github.com/ngochuy13/intern-dev` (branch: main + master)
