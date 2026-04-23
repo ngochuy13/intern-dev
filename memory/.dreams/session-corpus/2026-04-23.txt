@@ -1,0 +1,2 @@
+[main/sessions/f11b0550-1932-427d-b62c-ca77c4047b36.jsonl#L351] User: Commit hết chưa [Bootstrap truncation warning] Some workspace bootstrap files were truncated before injection. Treat Project Context as partial and read the relevant files directly if details seem missing. - AGENTS.md: 27440 raw -> 11999 injected (~56% removed; max/file). -
+[main/sessions/f11b0550-1932-427d-b62c-ca77c4047b36.jsonl#L356] Assistant: Xong! Tất cả đã commit và push lên repo rồi. ✅
