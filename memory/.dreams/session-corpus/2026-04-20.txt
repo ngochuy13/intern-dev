@@ -1,0 +1,2 @@
+[main/sessions/f11b0550-1932-427d-b62c-ca77c4047b36.jsonl#L285] User: ip cua may la gi
+[main/sessions/f11b0550-1932-427d-b62c-ca77c4047b36.jsonl#L288] Assistant: IP của tao là **172.168.50.99**

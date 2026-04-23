@@ -1,0 +1,18 @@
+{
+  "installed_role": "developer",
+  "role_label": "Software Developer / Engineer",
+  "version": "1.0.38",
+  "installed_at": "2026-04-14T10:43:00.000Z",
+  "generic_skills": [
+    "calendar-helper", "document-summarizer", "drive-reader", "email-assistant",
+    "exa-web-search", "file-manager", "gmail-reader", "memory-keeper", "note-taker",
+    "presentation-maker", "printer-control", "sheets-reader", "spreadsheet-helper",
+    "translator", "web-search"
+  ],
+  "role_skills": [
+    "api-tester", "architecture", "code-review", "code-reviewer", "debug",
+    "debug-assistant", "deploy-checklist", "doc-generator", "documentation",
+    "git-helper", "incident-response", "standup", "system-design", "tech-debt",
+    "testing-strategy"
+  ]
+}
