@@ -147,8 +147,8 @@ Thêm vào `openclaw.json`:
 Setup trong OpenClaw cron hoặc crontab:
 
 ```bash
-# GBrain sync every 15 min
-*/15 * * * * cd /root/openclaw/workspace && gbrain import . --no-embed && gbrain embed --stale
+# GBrain sync every 15 min (git-aware, tự pull + sync + embed)
+*/15 * * * * gbrain sync --repo /root/openclaw/workspace && gbrain embed --stale
 
 # GBrain dream cycle — nightly 2am
 0 2 * * * export OPENAI_API_KEY='your-key' && gbrain extract links --source db && gbrain extract timeline --source db
