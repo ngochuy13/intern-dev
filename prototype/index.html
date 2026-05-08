@@ -1,532 +1,865 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Territory Pet — Prototype v0.1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Territory Pet — v0.2</title>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Courier New', monospace; color: #eee; }
-  #game-container { position: relative; }
-  #ui-bar { width: 600px; background: #16213e; padding: 10px 16px; border-radius: 8px 8px 0 0; display: flex; gap: 20px; align-items: center; border-bottom: 2px solid #0f3460; }
-  .resource { display: flex; align-items: center; gap: 6px; font-size: 13px; }
-  .res-icon { font-size: 16px; }
-  .res-val { color: #e2b96f; font-weight: bold; min-width: 30px; }
-  #log-bar { width: 600px; background: #0f3460; padding: 6px 16px; border-radius: 0 0 8px 8px; font-size: 11px; color: #8ecae6; min-height: 24px; }
-  #controls { margin-top: 12px; display: flex; gap: 10px; }
-  button { background: #0f3460; color: #e2b96f; border: 1px solid #e2b96f; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 12px; transition: all 0.2s; }
-  button:hover { background: #e2b96f; color: #0f3460; }
-  button.active { background: #e2b96f; color: #0f3460; }
-  #season-bar { width: 600px; margin-top: 8px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #8ecae6; }
-  .progress-bg { flex: 1; height: 6px; background: #16213e; border-radius: 3px; overflow: hidden; }
-  .progress-fill { height: 100%; background: #e2b96f; border-radius: 3px; transition: width 0.5s; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { background: #1a1a2e; width: 100vw; height: 100vh; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+
+  #game-wrap { position: relative; width: 100vw; height: 100vh; }
+  #game-canvas-container { position: absolute; inset: 0; }
+
+  /* ── TOP HUD ── */
+  #hud-top {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 10px 12px 0;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    pointer-events: none; z-index: 20;
+  }
+
+  /* Top-left: avatar + name + energy */
+  #hud-topleft {
+    display: flex; flex-direction: column; gap: 4px;
+    pointer-events: all;
+  }
+  #player-row {
+    display: flex; align-items: center; gap: 7px;
+  }
+  #player-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg,#e91e63,#9c27b0);
+    border: 2px solid #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  #player-name {
+    font-size: 13px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 4px #000a;
+  }
+  #energy-row {
+    display: flex; align-items: center; gap: 5px; margin-left: 45px;
+  }
+  #energy-label { font-size: 11px; color: #ffe; font-weight: 600; text-shadow: 0 1px 3px #000a; }
+  #energy-bar-bg {
+    width: 100px; height: 10px; background: rgba(0,0,0,0.4);
+    border-radius: 5px; border: 1px solid rgba(255,255,255,0.3); overflow: hidden;
+  }
+  #energy-bar { height: 100%; width: 70%; background: linear-gradient(90deg,#f9ca24,#f0932b); border-radius: 5px; transition: width 0.3s; }
+
+  /* Top-center: season + time */
+  #hud-topcenter {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    pointer-events: none;
+  }
+  #season-time {
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+    border-radius: 20px; padding: 4px 14px;
+    font-size: 13px; color: #ffe; font-weight: 700;
+    text-shadow: 0 1px 3px #0008; display: flex; align-items: center; gap: 6px;
+  }
+  #season-dot { width: 8px; height: 8px; border-radius: 50%; background: #f9ca24; }
+
+  /* Top-right: resources + level */
+  #hud-topright {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+    pointer-events: all;
+  }
+  .res-chip {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    border-radius: 20px; padding: 4px 8px 4px 5px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .res-chip-icon { font-size: 16px; }
+  .res-chip-val { font-size: 13px; font-weight: 700; color: #ffe; min-width: 40px; text-align: right; }
+  .res-chip-btn {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #f9ca24; color: #333; font-size: 13px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 1; flex-shrink: 0;
+  }
+  #level-chip {
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    border-radius: 20px; padding: 3px 10px;
+    font-size: 11px; color: #ffe; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  /* ── LEFT SIDE BUTTONS ── */
+  #hud-left {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: all; z-index: 20;
+  }
+  .side-btn {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(255,255,255,0.15); backdrop-filter: blur(6px);
+    border: 2px solid rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; cursor: pointer; transition: transform 0.15s, background 0.15s;
+    box-shadow: 0 2px 8px #0005;
+  }
+  .side-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.3); }
+
+  /* ── RIGHT SIDE QUICK ACTIONS ── */
+  #hud-right {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-30%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    pointer-events: all; z-index: 20;
+  }
+  #bag-btn {
+    width: 54px; height: 54px; border-radius: 12px;
+    background: linear-gradient(135deg,#b5651d,#8B4513);
+    border: 2px solid rgba(255,255,255,0.3);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 22px; cursor: pointer; box-shadow: 0 3px 10px #0007;
+    color: #fff; gap: 1px;
+    transition: transform 0.15s;
+  }
+  #bag-btn:active { transform: scale(0.9); }
+  #bag-btn span { font-size: 9px; font-weight: 700; color: #ffe; }
+  .quick-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg,#1e88e5,#0d47a1);
+    border: 2px solid rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; cursor: pointer;
+    box-shadow: 0 2px 8px #0006;
+    transition: transform 0.15s;
+  }
+  .quick-btn:active { transform: scale(0.9); }
+  .quick-btn.green { background: linear-gradient(135deg,#43a047,#1b5e20); }
+  .quick-btn.orange { background: linear-gradient(135deg,#fb8c00,#e65100); }
+  .quick-btn.purple { background: linear-gradient(135deg,#8e24aa,#4a148c); }
+  .quick-btn.red { background: linear-gradient(135deg,#e53935,#b71c1c); }
+
+  /* ── BOTTOM LEFT: D-PAD ── */
+  #hud-dpad {
+    position: absolute; bottom: 24px; left: 16px;
+    width: 110px; height: 110px;
+    pointer-events: all; z-index: 20;
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+    gap: 3px;
+  }
+  .dpad-btn {
+    background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; color: #ffffffcc;
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .dpad-btn:active { background: rgba(255,255,255,0.25); }
+  .dpad-center { background: rgba(255,255,255,0.08); cursor: default; }
+  .dpad-empty { background: transparent; border-color: transparent; }
+
+  /* ── BOTTOM CENTER: LOG TOAST ── */
+  #hud-toast {
+    position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%);
+    background: rgba(30,30,30,0.82); backdrop-filter: blur(6px);
+    border-radius: 20px; padding: 7px 18px;
+    font-size: 13px; color: #ffe;
+    white-space: nowrap; z-index: 30;
+    display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 2px 12px #0008;
+    opacity: 1; transition: opacity 0.5s;
+    pointer-events: none;
+  }
+  #toast-icon { font-size: 15px; }
+  #hud-toast.fade { opacity: 0; }
+
+  /* ── BOTTOM RIGHT: PET + ORB ── */
+  #hud-pet {
+    position: absolute; bottom: 18px; right: 12px;
+    display: flex; align-items: flex-end; gap: 6px;
+    pointer-events: all; z-index: 20;
+  }
+  #pet-orb {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9ca24, #f0932b, #c0392b);
+    border: 3px solid #ffd700; box-shadow: 0 0 16px #f9ca2466, 0 3px 10px #0007;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; cursor: pointer;
+    animation: orbPulse 2s ease-in-out infinite;
+  }
+  @keyframes orbPulse {
+    0%,100% { box-shadow: 0 0 16px #f9ca2466, 0 3px 10px #0007; }
+    50% { box-shadow: 0 0 30px #f9ca24aa, 0 3px 10px #0007; }
+  }
+  #pet-btn {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: linear-gradient(135deg,#f9ca24,#f0932b);
+    border: 2px solid rgba(255,255,255,0.4);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 22px; cursor: pointer; gap: 1px;
+    box-shadow: 0 3px 12px #0007;
+    transition: transform 0.15s;
+  }
+  #pet-btn:active { transform: scale(0.9); }
+  #pet-btn span { font-size: 9px; font-weight: 700; color: #333; }
+
+  /* ── BOTTOM STATUS BAR ── */
+  #hud-status {
+    position: absolute; bottom: 4px; left: 120px;
+    font-size: 10px; color: rgba(255,255,255,0.5);
+    pointer-events: none; z-index: 20;
+  }
+
+  /* ── PET PANEL (slide-up) ── */
+  #pet-panel {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(15,15,35,0.95); backdrop-filter: blur(10px);
+    border-radius: 20px 20px 0 0; border-top: 2px solid rgba(255,255,255,0.1);
+    padding: 14px 16px 24px; z-index: 40;
+    transform: translateY(100%); transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+  }
+  #pet-panel.open { transform: translateY(0); }
+  #pet-panel-handle {
+    width: 40px; height: 4px; background: rgba(255,255,255,0.2);
+    border-radius: 2px; margin: 0 auto 12px; cursor: pointer;
+  }
+  #pet-panel-title { font-size: 14px; font-weight: 700; color: #ffe; margin-bottom: 10px; }
+  #pet-cards { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  #pet-cards::-webkit-scrollbar { display: none; }
+  .pet-card {
+    flex-shrink: 0; width: 90px;
+    background: rgba(255,255,255,0.07); border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .pet-card:active { background: rgba(255,255,255,0.15); }
+  .pet-card-emoji { font-size: 26px; }
+  .pet-card-name { font-size: 10px; font-weight: 700; color: #ffe; }
+  .pet-card-type { font-size: 9px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+  .pet-card-bar-bg { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+  .pet-card-bar { height: 100%; border-radius: 2px; transition: width 0.3s; }
+  .pet-card-label { font-size: 9px; color: rgba(255,255,255,0.45); align-self: flex-start; }
+  #hatch-btn {
+    flex-shrink: 0; width: 90px;
+    background: rgba(249,202,36,0.12); border-radius: 12px;
+    border: 1px dashed #f9ca24;
+    padding: 10px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; cursor: pointer;
+    font-size: 22px;
+  }
+  #hatch-btn span { font-size: 10px; color: #f9ca24; font-weight: 600; }
+
+  /* ── ORDER PANEL ── */
+  #order-panel {
+    position: absolute; left: 60px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: all; z-index: 20;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  #order-panel.visible { opacity: 1; pointer-events: all; }
+  .order-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 20px;
+    padding: 6px 12px; font-size: 12px; color: #ffe; cursor: pointer;
+    white-space: nowrap; transition: background 0.15s;
+  }
+  .order-chip:active, .order-chip.active { background: rgba(249,202,36,0.3); border-color: #f9ca24; }
 </style>
 </head>
 <body>
+<div id="game-wrap">
+  <div id="game-canvas-container"></div>
 
-<div id="ui-bar">
-  <div class="resource"><span class="res-icon">🌾</span><span>Food</span><span class="res-val" id="res-food">0</span></div>
-  <div class="resource"><span class="res-icon">🪵</span><span>Wood</span><span class="res-val" id="res-wood">0</span></div>
-  <div class="resource"><span class="res-icon">🪨</span><span>Stone</span><span class="res-val" id="res-stone">0</span></div>
-  <div class="resource"><span class="res-icon">💎</span><span>Crystal</span><span class="res-val" id="res-crystal">0</span></div>
-  <div class="resource" style="margin-left:auto">
-    <span class="res-icon">⚡</span><span>Bond</span><span class="res-val" id="res-bond">0</span>
+  <!-- ── TOP HUD ── -->
+  <div id="hud-top">
+    <div id="hud-topleft">
+      <div id="player-row">
+        <div id="player-avatar">🧑</div>
+        <div id="player-name">TERRITORY PET</div>
+      </div>
+      <div id="energy-row">
+        <div id="energy-label">EN:</div>
+        <div id="energy-bar-bg"><div id="energy-bar"></div></div>
+      </div>
+    </div>
+
+    <div id="hud-topcenter">
+      <div id="season-time">
+        <div id="season-dot"></div>
+        <span id="season-label">🌸 Mùa xuân</span>
+        <span id="day-label">01:00</span>
+      </div>
+    </div>
+
+    <div id="hud-topright">
+      <div class="res-chip">
+        <span class="res-chip-icon">💎</span>
+        <span class="res-chip-val" id="res-crystal">0</span>
+        <div class="res-chip-btn" onclick="addPet()">+</div>
+      </div>
+      <div class="res-chip">
+        <span class="res-chip-icon">🪙</span>
+        <span class="res-chip-val" id="res-food">10</span>
+        <div class="res-chip-btn">+</div>
+      </div>
+      <div id="level-chip">Level <span id="res-level">1</span> <span id="res-xp" style="color:#f9ca24">+0%</span></div>
+    </div>
   </div>
-</div>
 
-<div id="game-container"></div>
+  <!-- ── LEFT SIDE ── -->
+  <div id="hud-left">
+    <div class="side-btn" id="btn-settings" onclick="toggleOrders()" title="Work Orders">⚙️</div>
+    <div class="side-btn" onclick="showToast('🎁','Phần quà đang chuẩn bị...')">🎁</div>
+  </div>
 
-<div id="log-bar">🐾 Pet đang thức dậy...</div>
+  <!-- ── WORK ORDER PANEL ── -->
+  <div id="order-panel">
+    <div class="order-chip active" id="chip-auto" onclick="setOrder('AUTO')">🤖 AUTO</div>
+    <div class="order-chip" id="chip-farm" onclick="setOrder('FARM')">🌾 FARM</div>
+    <div class="order-chip" id="chip-explore" onclick="setOrder('EXPLORE')">🔭 EXPLORE</div>
+    <div class="order-chip" id="chip-defend" onclick="setOrder('DEFEND')">🛡️ DEFEND</div>
+  </div>
 
-<div id="controls">
-  <span style="font-size:12px;color:#8ecae6">Work Order:</span>
-  <button id="btn-auto" class="active" onclick="setOrder('AUTO')">🤖 AUTO</button>
-  <button id="btn-farm" onclick="setOrder('FARM')">🌾 FARM</button>
-  <button id="btn-explore" onclick="setOrder('EXPLORE')">🔭 EXPLORE</button>
-  <button id="btn-defend" onclick="setOrder('DEFEND')">🛡️ DEFEND</button>
-  <button onclick="addPet()" style="margin-left:10px">➕ Hatch Pet</button>
-</div>
+  <!-- ── RIGHT QUICK ACTIONS ── -->
+  <div id="hud-right">
+    <div id="bag-btn" onclick="showToast('🎒','Túi đồ: Gỗ '+state.resources.wood+' | Đá '+state.resources.stone)">
+      🎒<span>TÚI ĐỒ</span>
+    </div>
+    <div class="quick-btn" onclick="showToast('😊','Cảm xúc sắp ra mắt!')">😊</div>
+    <div class="quick-btn green" onclick="showToast('✉️','Chat sắp ra mắt!')">✉️</div>
+    <div class="quick-btn orange" onclick="showToast('🏆','Nhiệm vụ sắp ra mắt!')">🏆</div>
+    <div class="quick-btn purple" onclick="showToast('🗺️','Bản đồ lớn sắp ra mắt!')">🗺️</div>
+    <div class="quick-btn red" onclick="showToast('⚔️','PVP sắp ra mắt!')">⚔️</div>
+  </div>
 
-<div id="season-bar">
-  <span id="season-label">🌸 Spring</span>
-  <div class="progress-bg"><div class="progress-fill" id="season-progress" style="width:0%"></div></div>
-  <span id="day-label">Day 1</span>
+  <!-- ── D-PAD ── -->
+  <div id="hud-dpad">
+    <div class="dpad-empty"></div>
+    <div class="dpad-btn" id="dpad-up">▲</div>
+    <div class="dpad-empty"></div>
+    <div class="dpad-btn" id="dpad-left">◀</div>
+    <div class="dpad-btn dpad-center">·</div>
+    <div class="dpad-btn" id="dpad-right">▶</div>
+    <div class="dpad-empty"></div>
+    <div class="dpad-btn" id="dpad-down">▼</div>
+    <div class="dpad-empty"></div>
+  </div>
+
+  <!-- ── TOAST ── -->
+  <div id="hud-toast">
+    <span id="toast-icon">🐾</span>
+    <span id="toast-text">Pet đang thức dậy...</span>
+  </div>
+
+  <!-- ── PET BUTTON + ORB ── -->
+  <div id="hud-pet">
+    <div id="pet-orb">🐾</div>
+    <div id="pet-btn" onclick="togglePetPanel()">🐱<span>PET</span></div>
+  </div>
+
+  <!-- ── COORDINATES ── -->
+  <div id="hud-status">x: 0 y: 0</div>
+
+  <!-- ── PET PANEL ── -->
+  <div id="pet-panel">
+    <div id="pet-panel-handle" onclick="togglePetPanel()"></div>
+    <div id="pet-panel-title">🐾 Thú Cưng Của Tao</div>
+    <div id="pet-cards">
+      <div id="hatch-btn" onclick="addPet()">🥚<span>Ấp Trứng<br>-20🪙</span></div>
+    </div>
+  </div>
 </div>
 
 <script>
 // ── Config ──────────────────────────────────────────────
 const TILE_SIZE = 48;
-const MAP_W = 12;
-const MAP_H = 10;
-const CANVAS_W = MAP_W * TILE_SIZE;
-const CANVAS_H = MAP_H * TILE_SIZE;
+const MAP_W = 16;
+const MAP_H = 12;
 const SEASON_DAYS = 30;
 
-// Tile types
 const TILES = {
-  GRASS:    { id: 0, color: 0x4caf50, darkColor: 0x2e7d32, emoji: '🌾', resource: 'food',   yield: 2, label: 'Grassland' },
-  FOREST:   { id: 1, color: 0x2d6a4f, darkColor: 0x1b4332, emoji: '🌲', resource: 'wood',   yield: 3, label: 'Forest'    },
-  MOUNTAIN: { id: 2, color: 0x795548, darkColor: 0x4e342e, emoji: '⛰️', resource: 'stone',  yield: 2, label: 'Mountain'  },
-  RUINS:    { id: 3, color: 0x4a148c, darkColor: 0x311b92, emoji: '🌑', resource: 'crystal', yield: 1, label: 'Ruins'     },
-  WATER:    { id: 4, color: 0x0288d1, darkColor: 0x01579b, emoji: '💧', resource: null,      yield: 0, label: 'Water'     },
+  GRASS:     { id:0, color:0x5cb85c, darkColor:0x2d6a2d, emoji:'🌿', resource:'food',   yield:2, label:'Đồng Cỏ'  },
+  FOREST:    { id:1, color:0x2d7a4f, darkColor:0x1a4a30, emoji:'🌲', resource:'wood',   yield:3, label:'Rừng Xanh' },
+  MOUNTAIN:  { id:2, color:0x8d6e63, darkColor:0x5d4037, emoji:'⛰️', resource:'stone',  yield:2, label:'Núi Đá'   },
+  WETLAND:   { id:3, color:0x4db6ac, darkColor:0x00796b, emoji:'🌿', resource:'food',   yield:1, label:'Đầm Lầy'  },
+  WATER:     { id:4, color:0x29b6f6, darkColor:0x0277bd, emoji:'💧', resource:null,     yield:0, label:'Sông Nước' },
+  RUINS:     { id:5, color:0x7e57c2, darkColor:0x4527a0, emoji:'🏛️', resource:'crystal',yield:1, label:'Phế Tích' },
+  WASTELAND: { id:6, color:0xa1887f, darkColor:0x6d4c41, emoji:'🌑', resource:'stone',  yield:1, label:'Hoang Địa' },
 };
 
-const TILE_MAP_LAYOUT = [
-  [0,0,1,1,2,2,1,0,0,3,0,0],
-  [0,0,0,1,1,2,2,0,0,0,0,0],
-  [0,1,1,0,0,1,0,0,2,2,0,0],
-  [1,1,0,0,0,0,1,1,2,3,0,0],
-  [0,0,0,0,4,4,0,1,1,0,0,0],
-  [0,2,2,0,4,4,0,0,1,1,0,0],
-  [0,2,3,0,0,0,1,1,0,0,0,0],
-  [0,0,0,1,1,0,0,0,0,2,0,0],
-  [0,0,1,1,0,0,0,0,2,2,0,0],
-  [0,0,0,0,0,0,0,0,0,0,0,0],
-];
+// Procedural map generation
+function generateMap(w, h) {
+  const map = [];
+  for (let y = 0; y < h; y++) {
+    map[y] = [];
+    for (let x = 0; x < w; x++) {
+      const nx = x / w, ny = y / h;
+      // Simple noise-ish via sin
+      const v = Math.sin(nx * 7.3 + 1.2) * Math.cos(ny * 5.1 + 0.8) +
+                Math.sin(nx * 13.1 - 0.4) * Math.cos(ny * 9.7 + 1.5) * 0.5;
+      if (v < -0.8)      map[y][x] = 4; // water
+      else if (v < -0.4) map[y][x] = 3; // wetland
+      else if (v < 0.0)  map[y][x] = 0; // grass
+      else if (v < 0.3)  map[y][x] = 1; // forest
+      else if (v < 0.6)  map[y][x] = 2; // mountain
+      else if (v < 0.75) map[y][x] = 6; // wasteland
+      else               map[y][x] = 5; // ruins
+    }
+  }
+  return map;
+}
 
-// ── State ────────────────────────────────────────────────
+const TILE_MAP = generateMap(MAP_W, MAP_H);
+const TILE_LIST = Object.values(TILES);
+
 const state = {
-  resources: { food: 10, wood: 5, stone: 3, crystal: 0, bond: 0 },
-  fog: Array.from({length: MAP_H}, () => Array(MAP_W).fill(true)),
-  claimed: Array.from({length: MAP_H}, () => Array(MAP_W).fill(false)),
+  resources: { food: 20, wood: 8, stone: 4, crystal: 1 },
+  fog: Array.from({length:MAP_H}, () => Array(MAP_W).fill(true)),
+  claimed: Array.from({length:MAP_H}, () => Array(MAP_W).fill(false)),
   workOrder: 'AUTO',
   pets: [],
   day: 1,
+  hour: 6,
+  minute: 0,
   seasonTick: 0,
-  season: 0, // 0=Spring 1=Summer 2=Autumn 3=Winter
-  logMessages: [],
+  season: 0,
+  level: 1,
+  xp: 0,
+  bond: 0,
+  camX: 0, camY: 0,
 };
 
-const SEASONS = ['🌸 Spring','☀️ Summer','🍂 Autumn','❄️ Winter'];
+const SEASONS = ['🌸 Mùa Xuân','☀️ Mùa Hè','🍂 Mùa Thu','❄️ Mùa Đông'];
+const SEASON_DOT_COLORS = ['#4CAF50','#FF9800','#FF5722','#90CAF9'];
 const SEASON_YIELD_MOD = [1.0, 1.5, 1.0, 0.4];
 
 // Reveal starting area
-for (let y = 3; y < 7; y++)
-  for (let x = 4; x < 8; x++) {
-    state.fog[y][x] = false;
-    state.claimed[y][x] = true;
-  }
+const MID_X = Math.floor(MAP_W/2), MID_Y = Math.floor(MAP_H/2);
+for (let y = MID_Y-2; y <= MID_Y+2; y++)
+  for (let x = MID_X-2; x <= MID_X+2; x++)
+    if (y>=0&&y<MAP_H&&x>=0&&x<MAP_W) {
+      state.fog[y][x] = false;
+      state.claimed[y][x] = true;
+    }
 
-// ── Logging ──────────────────────────────────────────────
-function log(msg) {
-  document.getElementById('log-bar').textContent = msg;
+// ── Toast ───────────────────────────────────────────────
+let toastTimer = null;
+function showToast(icon, msg) {
+  const el = document.getElementById('hud-toast');
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-text').textContent = msg;
+  el.classList.remove('fade');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('fade'), 3000);
 }
 
-// ── Work Order ───────────────────────────────────────────
+// ── Pet Panel ───────────────────────────────────────────
+let petPanelOpen = false;
+function togglePetPanel() {
+  petPanelOpen = !petPanelOpen;
+  document.getElementById('pet-panel').classList.toggle('open', petPanelOpen);
+  refreshPetCards();
+}
+
+function refreshPetCards() {
+  const container = document.getElementById('pet-cards');
+  // Remove existing cards (keep hatch btn)
+  [...container.querySelectorAll('.pet-card')].forEach(c => c.remove());
+  const hatchBtn = document.getElementById('hatch-btn');
+
+  state.pets.forEach((pet, i) => {
+    const card = document.createElement('div');
+    card.className = 'pet-card';
+    const staminaPct = pet.stamina;
+    const bondPct = pet.bond;
+    const staminaColor = staminaPct > 50 ? '#4caf50' : staminaPct > 25 ? '#ff9800' : '#f44336';
+    const typeLabel = {worker:'Thợ',scout:'Thám',guardian:'Vệ',courier:'Sứ'}[pet.type] || pet.type;
+    card.innerHTML = `
+      <div class="pet-card-emoji">${pet.getEmoji()}</div>
+      <div class="pet-card-name">#${pet.id.toUpperCase()}</div>
+      <div class="pet-card-type">${typeLabel} · Lv${pet.level}</div>
+      <div class="pet-card-label">Thể lực</div>
+      <div class="pet-card-bar-bg"><div class="pet-card-bar" style="width:${staminaPct}%;background:${staminaColor}"></div></div>
+      <div class="pet-card-label">Gắn kết</div>
+      <div class="pet-card-bar-bg"><div class="pet-card-bar" style="width:${bondPct}%;background:#f9ca24"></div></div>
+    `;
+    container.insertBefore(card, hatchBtn);
+  });
+}
+
+// ── Work Orders ─────────────────────────────────────────
+let orderPanelOpen = false;
+function toggleOrders() {
+  orderPanelOpen = !orderPanelOpen;
+  document.getElementById('order-panel').classList.toggle('visible', orderPanelOpen);
+}
+
 function setOrder(order) {
   state.workOrder = order;
   ['auto','farm','explore','defend'].forEach(o => {
-    document.getElementById('btn-'+o).classList.remove('active');
+    document.getElementById('chip-'+o).classList.remove('active');
   });
-  document.getElementById('btn-'+order.toLowerCase()).classList.add('active');
-  log(`📋 Work order set: ${order}`);
+  document.getElementById('chip-'+order.toLowerCase()).classList.add('active');
+  const labels = {AUTO:'🤖 Tự động',FARM:'🌾 Thu hoạch',EXPLORE:'🔭 Khám phá',DEFEND:'🛡️ Phòng thủ'};
+  showToast('📋', `Lệnh: ${labels[order]}`);
+  orderPanelOpen = false;
+  document.getElementById('order-panel').classList.remove('visible');
 }
 
 // ── UI Update ────────────────────────────────────────────
 function updateUI() {
   const r = state.resources;
-  document.getElementById('res-food').textContent   = r.food;
-  document.getElementById('res-wood').textContent   = r.wood;
-  document.getElementById('res-stone').textContent  = r.stone;
-  document.getElementById('res-crystal').textContent= r.crystal;
-  document.getElementById('res-bond').textContent   = r.bond;
+  document.getElementById('res-crystal').textContent = r.crystal;
+  document.getElementById('res-food').textContent    = r.food;
+  document.getElementById('res-level').textContent   = state.level;
+  document.getElementById('res-xp').textContent      = `+${Math.floor(state.xp)}%`;
+
+  const energy = Math.min(100, 40 + r.food);
+  document.getElementById('energy-bar').style.width  = Math.min(energy, 100) + '%';
 
   const pct = (state.seasonTick / (SEASON_DAYS * 60)) * 100;
-  document.getElementById('season-progress').style.width = pct + '%';
   document.getElementById('season-label').textContent = SEASONS[state.season];
-  document.getElementById('day-label').textContent = `Day ${state.day}`;
+  document.getElementById('season-dot').style.background = SEASON_DOT_COLORS[state.season];
+
+  // Time display
+  const h = String(state.hour).padStart(2,'0');
+  const m = String(state.minute).padStart(2,'0');
+  document.getElementById('day-label').textContent = `${h}:${m}`;
 }
 
-// ── Pet AI ───────────────────────────────────────────────
+// ── Pet Class ────────────────────────────────────────────
 class Pet {
-  constructor(scene, x, y, type = 'worker') {
+  constructor(scene, x, y, type='worker') {
     this.scene = scene;
-    this.tx = x; this.ty = y;  // tile pos
+    this.tx = x; this.ty = y;
     this.px = x * TILE_SIZE + TILE_SIZE/2;
     this.py = y * TILE_SIZE + TILE_SIZE/2;
     this.type = type;
-    this.state = 'idle'; // idle, moving, harvesting, resting
+    this.state = 'idle';
     this.harvestTimer = 0;
     this.restTimer = 0;
     this.stamina = 100;
     this.targetTx = x; this.targetTy = y;
-    this.id = Math.random().toString(36).slice(2,6);
+    this.id = Math.random().toString(36).slice(2,5);
     this.bond = 0;
+    this.level = 1;
+    this.xp = 0;
     this.harvestCount = 0;
 
-    // Graphics
     this.container = scene.add.container(this.px, this.py);
-    this.shadow = scene.add.ellipse(0, 6, 20, 8, 0x000000, 0.3);
-    this.body = scene.add.text(0, 0, this.getEmoji(), { fontSize: '22px' }).setOrigin(0.5);
-    this.label = scene.add.text(0, -22, `#${this.id}`, { fontSize: '9px', color: '#ffffff', backgroundColor: '#00000066' }).setOrigin(0.5);
-    this.staminaBar = scene.add.rectangle(0, 16, 24, 3, 0x00ff00);
-    this.container.add([this.shadow, this.body, this.label, this.staminaBar]);
+    this.shadow = scene.add.ellipse(0, 8, 22, 9, 0x000000, 0.35);
+    this.body = scene.add.text(0, 0, this.getEmoji(), { fontSize:'24px' }).setOrigin(0.5);
+    this.nameTag = scene.add.text(0, -26, this.id.toUpperCase(), {
+      fontSize:'8px', color:'#fff',
+      backgroundColor:'#00000088', padding:{x:3,y:2}
+    }).setOrigin(0.5);
+    this.staminaBg = scene.add.rectangle(0, 18, 26, 4, 0x000000, 0.5);
+    this.staminaBar = scene.add.rectangle(-13, 18, 26, 4, 0x00ff00).setOrigin(0, 0.5);
+    this.container.add([this.shadow, this.body, this.nameTag, this.staminaBg, this.staminaBar]);
     this.container.setDepth(10);
   }
 
   getEmoji() {
-    const map = { worker: '🐕', scout: '🦊', guardian: '🐺', courier: '🐦' };
-    return map[this.type] || '🐕';
+    return {worker:'🐕',scout:'🦊',guardian:'🐺',courier:'🐦'}[this.type] || '🐕';
   }
-
-  getSpeed() { return this.type === 'scout' ? 180 : 140; }
+  getSpeed() { return this.type==='scout' ? 190 : 145; }
 
   update(delta) {
     if (this.restTimer > 0) {
       this.restTimer -= delta;
-      if (this.restTimer <= 0) {
-        this.stamina = 100;
-        this.state = 'idle';
-        log(`😴 Pet #${this.id} rested up, back to work!`);
-      }
+      if (this.restTimer <= 0) { this.stamina = 100; this.state = 'idle'; showToast('😴',`Pet #${this.id} nghỉ xong, tiếp tục!`); }
       return;
     }
-
     if (this.state === 'idle') this.chooseTask();
-
     if (this.state === 'moving') this.moveToTarget(delta);
-
     if (this.state === 'harvesting') {
       this.harvestTimer -= delta;
-      // Wobble animation
-      this.body.setAngle(Math.sin(Date.now() / 120) * 8);
-      if (this.harvestTimer <= 0) {
-        this.doHarvest();
-        this.state = 'idle';
-        this.body.setAngle(0);
-      }
+      this.body.setAngle(Math.sin(Date.now()/120) * 8);
+      if (this.harvestTimer <= 0) { this.doHarvest(); this.state='idle'; this.body.setAngle(0); }
     }
-
-    // Stamina bar
-    const sw = Math.max(0, (this.stamina / 100) * 24);
+    const sw = Math.max(0,(this.stamina/100)*26);
     this.staminaBar.width = sw;
-    this.staminaBar.fillColor = this.stamina > 50 ? 0x00ff00 : this.stamina > 25 ? 0xffff00 : 0xff0000;
+    this.staminaBar.fillColor = this.stamina>50?0x00e676:this.stamina>25?0xffeb3b:0xff5252;
   }
 
   chooseTask() {
     const order = state.workOrder;
-
     if (this.stamina <= 10) {
-      this.state = 'resting';
-      this.restTimer = 3000;
-      log(`😴 Pet #${this.id} is exhausted, resting...`);
-      return;
+      this.state = 'resting'; this.restTimer = 3500;
+      showToast('😴',`Pet #${this.id} cần nghỉ ngơi...`); return;
     }
-
-    if (order === 'EXPLORE' || (order === 'AUTO' && this.type === 'scout') || (order === 'AUTO' && Math.random() < 0.3)) {
-      // Find fog tile adjacent to claimed
-      const target = this.findFogEdgeTile();
-      if (target) {
-        this.moveTo(target.x, target.y);
-        return;
-      }
+    if (order==='EXPLORE'||(order==='AUTO'&&this.type==='scout')||(order==='AUTO'&&Math.random()<0.3)) {
+      const t = this.findFogEdgeTile();
+      if (t) { this.moveTo(t.x,t.y); return; }
     }
-
-    if (order === 'FARM' || order === 'AUTO') {
-      const target = this.findHarvestTile();
-      if (target) {
-        this.moveTo(target.x, target.y);
-        return;
-      }
+    if (order==='FARM'||order==='AUTO') {
+      const t = this.findHarvestTile();
+      if (t) { this.moveTo(t.x,t.y); return; }
     }
-
-    // Wander
-    const wx = this.tx + Math.floor(Math.random()*3) - 1;
-    const wy = this.ty + Math.floor(Math.random()*3) - 1;
-    if (this.inBounds(wx, wy) && state.claimed[wy][wx]) {
-      this.moveTo(wx, wy);
-    }
+    const wx = this.tx + Math.floor(Math.random()*3)-1;
+    const wy = this.ty + Math.floor(Math.random()*3)-1;
+    if (this.inBounds(wx,wy) && state.claimed[wy][wx]) this.moveTo(wx,wy);
   }
 
   findHarvestTile() {
-    let best = null; let bestDist = 999;
-    for (let y = 0; y < MAP_H; y++)
-      for (let x = 0; x < MAP_W; x++) {
-        if (!state.claimed[y][x] || state.fog[y][x]) continue;
-        const tileType = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]];
-        if (!tileType.resource) continue;
-        const dist = Math.abs(x - this.tx) + Math.abs(y - this.ty);
-        if (dist < bestDist) { bestDist = dist; best = {x, y}; }
-      }
+    let best=null,bestDist=999;
+    for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) {
+      if(!state.claimed[y][x]||state.fog[y][x]) continue;
+      const t = TILE_LIST[TILE_MAP[y][x]]; if(!t.resource) continue;
+      const d = Math.abs(x-this.tx)+Math.abs(y-this.ty);
+      if(d<bestDist){bestDist=d;best={x,y};}
+    }
     return best;
   }
 
   findFogEdgeTile() {
-    const dirs = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
-    for (let y = 0; y < MAP_H; y++)
-      for (let x = 0; x < MAP_W; x++) {
-        if (!state.claimed[y][x]) continue;
-        for (const d of dirs) {
-          const nx = x + d.dx, ny = y + d.dy;
-          if (this.inBounds(nx, ny) && state.fog[ny][nx])
-            return {x: nx, y: ny};
-        }
+    const dirs=[{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+    for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+      if(!state.claimed[y][x]) continue;
+      for(const d of dirs){
+        const nx=x+d.dx,ny=y+d.dy;
+        if(this.inBounds(nx,ny)&&state.fog[ny][nx]) return{x:nx,y:ny};
       }
+    }
     return null;
   }
 
-  moveTo(tx, ty) {
-    this.targetTx = tx; this.targetTy = ty;
-    this.state = 'moving';
-  }
+  moveTo(tx,ty){ this.targetTx=tx;this.targetTy=ty;this.state='moving'; }
 
   moveToTarget(delta) {
-    const targetPx = this.targetTx * TILE_SIZE + TILE_SIZE/2;
-    const targetPy = this.targetTy * TILE_SIZE + TILE_SIZE/2;
-    const dx = targetPx - this.px;
-    const dy = targetPy - this.py;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    const speed = this.getSpeed() * (delta/1000);
-
-    if (dist < speed + 1) {
-      this.px = targetPx; this.py = targetPy;
-      this.tx = this.targetTx; this.ty = this.targetTy;
-      this.container.setPosition(this.px, this.py);
-      this.onArrived();
+    const tpx=this.targetTx*TILE_SIZE+TILE_SIZE/2,tpy=this.targetTy*TILE_SIZE+TILE_SIZE/2;
+    const dx=tpx-this.px,dy=tpy-this.py;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const speed=this.getSpeed()*(delta/1000);
+    if(dist<speed+1){
+      this.px=tpx;this.py=tpy;this.tx=this.targetTx;this.ty=this.targetTy;
+      this.container.setPosition(this.px,this.py);this.onArrived();
     } else {
-      this.px += (dx/dist) * speed;
-      this.py += (dy/dist) * speed;
-      this.container.setPosition(this.px, this.py);
-      // Bob animation
-      this.body.y = Math.sin(Date.now() / 100) * 2;
+      this.px+=(dx/dist)*speed;this.py+=(dy/dist)*speed;
+      this.container.setPosition(this.px,this.py);
+      this.body.y=Math.sin(Date.now()/100)*2.5;
     }
   }
 
   onArrived() {
-    const x = this.tx, y = this.ty;
-
-    // Reveal fog
-    if (state.fog[y][x]) {
-      state.fog[y][x] = false;
-      state.claimed[y][x] = true;
-      this.scene.redrawTile(x, y);
-      // Also reveal neighbors
-      const dirs = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
-      dirs.forEach(d => {
-        const nx = x+d.dx, ny = y+d.dy;
-        if (this.inBounds(nx,ny) && state.fog[ny][nx]) {
-          state.fog[ny][nx] = false;
-          state.claimed[ny][nx] = true;
-          this.scene.redrawTile(nx, ny);
-        }
+    const x=this.tx,y=this.ty;
+    if(state.fog[y][x]){
+      state.fog[y][x]=false;state.claimed[y][x]=true;
+      this.scene.redrawTile(x,y);
+      [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}].forEach(d=>{
+        const nx=x+d.dx,ny=y+d.dy;
+        if(this.inBounds(nx,ny)&&state.fog[ny][nx]){state.fog[ny][nx]=false;state.claimed[ny][nx]=true;this.scene.redrawTile(nx,ny);}
       });
-      const tName = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]].label;
-      log(`🔭 Pet #${this.id} discovered ${tName} at (${x},${y})!`);
-      state.resources.bond = Math.min(100, state.resources.bond + 1);
-      this.state = 'idle';
-      return;
+      const tName=TILE_LIST[TILE_MAP[y][x]].label;
+      showToast('🔭',`Pet #${this.id} khám phá ${tName} (${x},${y})!`);
+      state.resources.crystal=Math.min(999,state.resources.crystal+1);
+      this.gainXP(5); this.state='idle'; return;
     }
-
-    // Start harvest
-    const tileType = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]];
-    if (tileType.resource) {
-      this.state = 'harvesting';
-      this.harvestTimer = 1500 + Math.random() * 500;
-    } else {
-      this.state = 'idle';
-    }
+    const tileType=TILE_LIST[TILE_MAP[y][x]];
+    if(tileType.resource){this.state='harvesting';this.harvestTimer=1500+Math.random()*500;}
+    else this.state='idle';
   }
 
   doHarvest() {
-    const x = this.tx, y = this.ty;
-    const tileType = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]];
-    if (!tileType.resource) return;
-
-    const mod = SEASON_YIELD_MOD[state.season];
-    const amount = Math.max(1, Math.round(tileType.yield * mod));
-    state.resources[tileType.resource] += amount;
-    this.stamina = Math.max(0, this.stamina - 8);
+    const x=this.tx,y=this.ty;
+    const tileType=TILE_LIST[TILE_MAP[y][x]];
+    if(!tileType.resource) return;
+    const mod=SEASON_YIELD_MOD[state.season];
+    const amount=Math.max(1,Math.round(tileType.yield*mod));
+    state.resources[tileType.resource]=Math.min(9999,(state.resources[tileType.resource]||0)+amount);
+    this.stamina=Math.max(0,this.stamina-8);
     this.harvestCount++;
-    this.bond = Math.min(100, this.bond + 0.5);
+    this.bond=Math.min(100,this.bond+0.5);
+    this.gainXP(2);
 
-    // Float text
-    const floatTxt = this.scene.add.text(
-      x * TILE_SIZE + TILE_SIZE/2,
-      y * TILE_SIZE,
+    const floatTxt=this.scene.add.text(
+      x*TILE_SIZE+TILE_SIZE/2,y*TILE_SIZE,
       `+${amount}${tileType.emoji}`,
-      { fontSize: '12px', color: '#e2b96f', stroke: '#000', strokeThickness: 2 }
+      {fontSize:'13px',color:'#f9ca24',stroke:'#000',strokeThickness:3}
     ).setOrigin(0.5).setDepth(20);
-    this.scene.tweens.add({
-      targets: floatTxt, y: y * TILE_SIZE - 30, alpha: 0,
-      duration: 900, onComplete: () => floatTxt.destroy()
-    });
+    this.scene.tweens.add({targets:floatTxt,y:y*TILE_SIZE-32,alpha:0,duration:900,onComplete:()=>floatTxt.destroy()});
 
-    if (this.harvestCount % 5 === 0)
-      log(`🌾 Pet #${this.id} harvested ${amount} ${tileType.resource}! (${this.harvestCount} total)`);
+    if(this.harvestCount%5===0)
+      showToast(tileType.emoji,`Bạn nhận được x${amount} ${this.resourceLabel(tileType.resource)}`);
   }
 
-  inBounds(x, y) { return x >= 0 && x < MAP_W && y >= 0 && y < MAP_H; }
-  destroy() { this.container.destroy(); }
+  resourceLabel(r){return{food:'Lương Thực',wood:'Gỗ',stone:'Đá',crystal:'Pha Lê'}[r]||r;}
+
+  gainXP(amt) {
+    this.xp+=amt; state.xp+=amt*0.1;
+    if(this.xp>=100){this.xp=0;this.level++;showToast('🌟',`Pet #${this.id} lên Lv${this.level}!`);}
+    if(state.xp>=100){state.xp=0;state.level++;showToast('🏆',`Bạn lên Level ${state.level}!`);}
+  }
+
+  inBounds(x,y){return x>=0&&x<MAP_W&&y>=0&&y<MAP_H;}
+  destroy(){this.container.destroy();}
 }
 
 // ── Phaser Scene ─────────────────────────────────────────
 class GameScene extends Phaser.Scene {
-  constructor() { super({ key: 'GameScene' }); }
+  constructor(){super({key:'GameScene'});}
 
   create() {
-    this.tileGraphics = [];
-    this.tileTexts = [];
+    this.tileGfx=[];this.tileTxt=[];
 
-    // Draw all tiles
-    for (let y = 0; y < MAP_H; y++) {
-      this.tileGraphics[y] = [];
-      this.tileTexts[y] = [];
-      for (let x = 0; x < MAP_W; x++) {
-        const g = this.add.graphics();
-        this.tileGraphics[y][x] = g;
-        const t = this.add.text(
-          x * TILE_SIZE + TILE_SIZE/2,
-          y * TILE_SIZE + TILE_SIZE/2,
-          '', { fontSize: '20px' }
-        ).setOrigin(0.5).setDepth(2);
-        this.tileTexts[y][x] = t;
-        this.redrawTile(x, y);
+    // Camera setup
+    this.cameras.main.setBounds(0,0,MAP_W*TILE_SIZE,MAP_H*TILE_SIZE);
+    const startPx=MID_X*TILE_SIZE,startPy=MID_Y*TILE_SIZE;
+    this.cameras.main.centerOn(startPx,startPy);
+
+    // Draw tiles
+    for(let y=0;y<MAP_H;y++){
+      this.tileGfx[y]=[];this.tileTxt[y]=[];
+      for(let x=0;x<MAP_W;x++){
+        const g=this.add.graphics();this.tileGfx[y][x]=g;
+        const t=this.add.text(x*TILE_SIZE+TILE_SIZE/2,y*TILE_SIZE+TILE_SIZE/2,'',{fontSize:'22px'}).setOrigin(0.5).setDepth(2);
+        this.tileTxt[y][x]=t;this.redrawTile(x,y);
       }
     }
 
-    // Grid lines
-    const grid = this.add.graphics();
-    grid.lineStyle(1, 0x000000, 0.2);
-    for (let x = 0; x <= MAP_W; x++) { grid.moveTo(x*TILE_SIZE,0); grid.lineTo(x*TILE_SIZE,MAP_H*TILE_SIZE); }
-    for (let y = 0; y <= MAP_H; y++) { grid.moveTo(0,y*TILE_SIZE); grid.lineTo(MAP_W*TILE_SIZE,y*TILE_SIZE); }
-    grid.strokePath();
-    grid.setDepth(1);
+    // Grid
+    const grid=this.add.graphics();grid.lineStyle(1,0x000000,0.15);
+    for(let x=0;x<=MAP_W;x++){grid.moveTo(x*TILE_SIZE,0);grid.lineTo(x*TILE_SIZE,MAP_H*TILE_SIZE);}
+    for(let y=0;y<=MAP_H;y++){grid.moveTo(0,y*TILE_SIZE);grid.lineTo(MAP_W*TILE_SIZE,y*TILE_SIZE);}
+    grid.strokePath();grid.setDepth(1);
 
-    // Click to claim adjacent tile
-    this.input.on('pointerdown', (ptr) => {
-      const tx = Math.floor(ptr.x / TILE_SIZE);
-      const ty = Math.floor(ptr.y / TILE_SIZE);
-      if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return;
-      this.tryClaimTile(tx, ty);
+    // Click to claim
+    this.input.on('pointerdown',(ptr)=>{
+      const tx=Math.floor(ptr.worldX/TILE_SIZE),ty=Math.floor(ptr.worldY/TILE_SIZE);
+      if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H) return;
+      this.tryClaimTile(tx,ty);
     });
 
-    // Spawn initial pet
-    state.pets.push(new Pet(this, 6, 5, 'worker'));
-    log('🐾 Worker pet hatched! Watching territory...');
+    // D-pad controls
+    const cam=this.cameras.main;
+    const dpadConfig=[
+      {id:'dpad-up',   dx: 0, dy:-1},
+      {id:'dpad-down', dx: 0, dy: 1},
+      {id:'dpad-left', dx:-1, dy: 0},
+      {id:'dpad-right',dx: 1, dy: 0},
+    ];
+    dpadConfig.forEach(({id,dx,dy})=>{
+      const btn=document.getElementById(id);
+      let held=null;
+      const startMove=()=>{
+        if(held) return;
+        held=setInterval(()=>{cam.scrollX+=dx*4;cam.scrollY+=dy*4;},16);
+      };
+      const stopMove=()=>{clearInterval(held);held=null;};
+      btn.addEventListener('pointerdown',startMove);
+      btn.addEventListener('pointerup',stopMove);
+      btn.addEventListener('pointerleave',stopMove);
+    });
 
-    // Season tick
-    this.time.addEvent({
-      delay: 1000,
-      loop: true,
-      callback: () => {
-        state.seasonTick++;
-        if (state.seasonTick % 60 === 0) {
-          state.day++;
-          if (state.day > SEASON_DAYS) {
-            state.day = 1;
-            state.season = (state.season + 1) % 4;
-            state.seasonTick = 0;
-            log(`🌍 Season changed to ${SEASONS[state.season]}!`);
-          }
-          state.resources.bond = Math.min(100, state.resources.bond + 1);
+    // Spawn pet
+    state.pets.push(new Pet(this,MID_X,MID_Y,'worker'));
+    showToast('🐾','Pet Thợ thức dậy! Bắt đầu chinh phục lãnh thổ!');
+
+    // Season timer
+    this.time.addEvent({delay:1000,loop:true,callback:()=>{
+      state.seasonTick++;
+      state.minute+=2; // 1 real sec = 2 game min
+      if(state.minute>=60){state.minute=0;state.hour=(state.hour+1)%24;}
+      if(state.seasonTick%60===0){
+        state.day++;
+        if(state.day>SEASON_DAYS){
+          state.day=1;state.season=(state.season+1)%4;state.seasonTick=0;
+          showToast('🌍',`Sang ${SEASONS[state.season]}!`);
         }
-        updateUI();
       }
+      updateUI();
+      if(petPanelOpen) refreshPetCards();
+    }});
+
+    // Pointer coords display
+    this.input.on('pointermove',(ptr)=>{
+      const tx=Math.floor(ptr.worldX/TILE_SIZE),ty=Math.floor(ptr.worldY/TILE_SIZE);
+      document.getElementById('hud-status').textContent=`x: ${tx} y: ${ty}`;
     });
+
+    // Enemy tick (every 3 days → every 3min real)
+    this.time.addEvent({delay:180000,loop:true,callback:()=>{
+      showToast('👹','Kẻ thù đang tấn công biên giới!');
+    }});
   }
 
-  redrawTile(x, y) {
-    const g = this.tileGraphics[y][x];
-    const t = this.tileTexts[y][x];
-    g.clear();
-    const isFog = state.fog[y][x];
-    const isClaimed = state.claimed[y][x];
-    const tileId = TILE_MAP_LAYOUT[y][x];
-    const tileType = Object.values(TILES)[tileId];
-
-    if (isFog) {
-      // Adjacent to claimed = dark fog, else pure black
-      const isEdge = this.isAdjacentToClaimed(x, y);
-      g.fillStyle(isEdge ? 0x1a1a2e : 0x0d0d1a, 1);
-      g.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      t.setText(isEdge ? '?' : '');
-      t.setAlpha(0.3);
+  redrawTile(x,y){
+    const g=this.tileGfx[y][x];const t=this.tileTxt[y][x];g.clear();
+    const isFog=state.fog[y][x],isClaimed=state.claimed[y][x];
+    const tileType=TILE_LIST[TILE_MAP[y][x]];
+    if(isFog){
+      const isEdge=this.isAdjacentToClaimed(x,y);
+      g.fillStyle(isEdge?0x1a2040:0x0d0d1a,1);
+      g.fillRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
+      t.setText(isEdge?'?':'');t.setAlpha(0.3);
     } else {
-      const col = isClaimed ? tileType.color : tileType.darkColor;
-      g.fillStyle(col, 1);
-      g.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      if (isClaimed) {
-        g.lineStyle(1, 0xffffff, 0.15);
-        g.strokeRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      }
-      t.setText(tileType.emoji);
-      t.setAlpha(isClaimed ? 1 : 0.5);
+      const col=isClaimed?tileType.color:tileType.darkColor;
+      g.fillStyle(col,1);g.fillRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
+      if(isClaimed){g.lineStyle(1,0xffffff,0.1);g.strokeRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);}
+      t.setText(tileType.emoji);t.setAlpha(isClaimed?1:0.6);
     }
     g.setDepth(0);
   }
 
-  isAdjacentToClaimed(x, y) {
-    const dirs = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
-    return dirs.some(d => {
-      const nx = x+d.dx, ny = y+d.dy;
-      return nx>=0 && nx<MAP_W && ny>=0 && ny<MAP_H && state.claimed[ny][nx];
+  isAdjacentToClaimed(x,y){
+    return [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}].some(d=>{
+      const nx=x+d.dx,ny=y+d.dy;
+      return nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&state.claimed[ny][nx];
     });
   }
 
-  tryClaimTile(x, y) {
-    if (!state.fog[y][x] && !state.claimed[y][x]) {
-      log(`❌ Tile (${x},${y}) not reachable yet`);
-      return;
+  tryClaimTile(x,y){
+    if(state.claimed[y][x]) return;
+    if(!this.isAdjacentToClaimed(x,y)){showToast('❌','Chỉ claim được ô liền kề lãnh thổ!');return;}
+    const cost={food:5,wood:3};
+    if(state.resources.food<cost.food||state.resources.wood<cost.wood){
+      showToast('❌',`Cần ${cost.food}🌾 ${cost.wood}🪵 để khai phá!`);return;
     }
-    if (state.claimed[y][x]) return;
-    if (!this.isAdjacentToClaimed(x, y)) {
-      log(`❌ Can only claim tiles adjacent to your territory!`);
-      return;
-    }
-    const cost = { food: 5, wood: 3 };
-    if (state.resources.food < cost.food || state.resources.wood < cost.wood) {
-      log(`❌ Need ${cost.food}🌾 ${cost.wood}🪵 to claim tile`);
-      return;
-    }
-    state.resources.food -= cost.food;
-    state.resources.wood -= cost.wood;
-    state.fog[y][x] = false;
-    state.claimed[y][x] = true;
-    this.redrawTile(x, y);
-    const tName = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]].label;
-    log(`🏴 Claimed ${tName} tile at (${x},${y})! Cost: -${cost.food}🌾 -${cost.wood}🪵`);
+    state.resources.food-=cost.food;state.resources.wood-=cost.wood;
+    state.fog[y][x]=false;state.claimed[y][x]=true;this.redrawTile(x,y);
+    const tName=TILE_LIST[TILE_MAP[y][x]].label;
+    showToast('🏴',`Chiếm được ${tName} (${x},${y})! -${cost.food}🌾-${cost.wood}🪵`);
     updateUI();
   }
 
-  update(time, delta) {
-    state.pets.forEach(p => p.update(delta));
-  }
+  update(time,delta){state.pets.forEach(p=>p.update(delta));}
 }
 
-// ── Add Pet ───────────────────────────────────────────────
+// ── Add Pet ──────────────────────────────────────────────
 function addPet() {
-  if (state.resources.food < 20) {
-    log('❌ Need 20🌾 to hatch a new pet!');
-    return;
-  }
-  state.resources.food -= 20;
-  const types = ['worker', 'scout', 'worker', 'guardian'];
-  const type = types[Math.floor(Math.random() * types.length)];
-  const emojis = { worker: '🐕', scout: '🦊', guardian: '🐺' };
-
-  // Find a claimed tile to spawn on
-  let sx = 6, sy = 5;
-  for (let y = 0; y < MAP_H; y++)
-    for (let x = 0; x < MAP_W; x++)
-      if (state.claimed[y][x] && state.pets.length === 0) { sx = x; sy = y; }
-
-  const scene = game.scene.getScene('GameScene');
-  state.pets.push(new Pet(scene, sx, sy, type));
-  log(`🥚 New ${type} pet hatched! (${emojis[type]}) -20🌾`);
+  if(state.resources.food<20){showToast('❌','Cần 20🌾 để ấp trứng!');return;}
+  state.resources.food-=20;
+  const types=['worker','scout','worker','guardian'];
+  const type=types[Math.floor(Math.random()*types.length)];
+  const scene=game.scene.getScene('GameScene');
+  state.pets.push(new Pet(scene,MID_X,MID_Y,type));
+  const emojis={worker:'🐕',scout:'🦊',guardian:'🐺',courier:'🐦'};
+  showToast('🥚',`Pet ${type} nở! ${emojis[type]} -20🌾`);
   updateUI();
+  if(petPanelOpen) refreshPetCards();
 }
 
-// ── Launch ────────────────────────────────────────────────
-const game = new Phaser.Game({
-  type: Phaser.AUTO,
-  width: CANVAS_W,
-  height: CANVAS_H,
-  backgroundColor: '#1a1a2e',
-  parent: 'game-container',
-  scene: GameScene,
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
+// ── Launch ───────────────────────────────────────────────
+const CANVAS_W=MAP_W*TILE_SIZE;
+const CANVAS_H=MAP_H*TILE_SIZE;
+
+const game=new Phaser.Game({
+  type:Phaser.AUTO,
+  width:CANVAS_W,
+  height:CANVAS_H,
+  backgroundColor:'#1a2a1a',
+  parent:'game-canvas-container',
+  scene:GameScene,
+  scale:{
+    mode:Phaser.Scale.FIT,
+    autoCenter:Phaser.Scale.CENTER_BOTH,
+    width:CANVAS_W,
+    height:CANVAS_H,
+  },
+  input:{ activePointers:2 },
 });
+
+updateUI();
 </script>
 </body>
 </html>
