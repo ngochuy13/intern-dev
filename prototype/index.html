@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Territory Pet — Prototype v0.1</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Courier New', monospace; color: #eee; }
+  #game-container { position: relative; }
+  #ui-bar { width: 600px; background: #16213e; padding: 10px 16px; border-radius: 8px 8px 0 0; display: flex; gap: 20px; align-items: center; border-bottom: 2px solid #0f3460; }
+  .resource { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .res-icon { font-size: 16px; }
+  .res-val { color: #e2b96f; font-weight: bold; min-width: 30px; }
+  #log-bar { width: 600px; background: #0f3460; padding: 6px 16px; border-radius: 0 0 8px 8px; font-size: 11px; color: #8ecae6; min-height: 24px; }
+  #controls { margin-top: 12px; display: flex; gap: 10px; }
+  button { background: #0f3460; color: #e2b96f; border: 1px solid #e2b96f; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 12px; transition: all 0.2s; }
+  button:hover { background: #e2b96f; color: #0f3460; }
+  button.active { background: #e2b96f; color: #0f3460; }
+  #season-bar { width: 600px; margin-top: 8px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #8ecae6; }
+  .progress-bg { flex: 1; height: 6px; background: #16213e; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #e2b96f; border-radius: 3px; transition: width 0.5s; }
+</style>
+</head>
+<body>
+
+<div id="ui-bar">
+  <div class="resource"><span class="res-icon">🌾</span><span>Food</span><span class="res-val" id="res-food">0</span></div>
+  <div class="resource"><span class="res-icon">🪵</span><span>Wood</span><span class="res-val" id="res-wood">0</span></div>
+  <div class="resource"><span class="res-icon">🪨</span><span>Stone</span><span class="res-val" id="res-stone">0</span></div>
+  <div class="resource"><span class="res-icon">💎</span><span>Crystal</span><span class="res-val" id="res-crystal">0</span></div>
+  <div class="resource" style="margin-left:auto">
+    <span class="res-icon">⚡</span><span>Bond</span><span class="res-val" id="res-bond">0</span>
+  </div>
+</div>
+
+<div id="game-container"></div>
+
+<div id="log-bar">🐾 Pet đang thức dậy...</div>
+
+<div id="controls">
+  <span style="font-size:12px;color:#8ecae6">Work Order:</span>
+  <button id="btn-auto" class="active" onclick="setOrder('AUTO')">🤖 AUTO</button>
+  <button id="btn-farm" onclick="setOrder('FARM')">🌾 FARM</button>
+  <button id="btn-explore" onclick="setOrder('EXPLORE')">🔭 EXPLORE</button>
+  <button id="btn-defend" onclick="setOrder('DEFEND')">🛡️ DEFEND</button>
+  <button onclick="addPet()" style="margin-left:10px">➕ Hatch Pet</button>
+</div>
+
+<div id="season-bar">
+  <span id="season-label">🌸 Spring</span>
+  <div class="progress-bg"><div class="progress-fill" id="season-progress" style="width:0%"></div></div>
+  <span id="day-label">Day 1</span>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────
+const TILE_SIZE = 48;
+const MAP_W = 12;
+const MAP_H = 10;
+const CANVAS_W = MAP_W * TILE_SIZE;
+const CANVAS_H = MAP_H * TILE_SIZE;
+const SEASON_DAYS = 30;
+
+// Tile types
+const TILES = {
+  GRASS:    { id: 0, color: 0x4caf50, darkColor: 0x2e7d32, emoji: '🌾', resource: 'food',   yield: 2, label: 'Grassland' },
+  FOREST:   { id: 1, color: 0x2d6a4f, darkColor: 0x1b4332, emoji: '🌲', resource: 'wood',   yield: 3, label: 'Forest'    },
+  MOUNTAIN: { id: 2, color: 0x795548, darkColor: 0x4e342e, emoji: '⛰️', resource: 'stone',  yield: 2, label: 'Mountain'  },
+  RUINS:    { id: 3, color: 0x4a148c, darkColor: 0x311b92, emoji: '🌑', resource: 'crystal', yield: 1, label: 'Ruins'     },
+  WATER:    { id: 4, color: 0x0288d1, darkColor: 0x01579b, emoji: '💧', resource: null,      yield: 0, label: 'Water'     },
+};
+
+const TILE_MAP_LAYOUT = [
+  [0,0,1,1,2,2,1,0,0,3,0,0],
+  [0,0,0,1,1,2,2,0,0,0,0,0],
+  [0,1,1,0,0,1,0,0,2,2,0,0],
+  [1,1,0,0,0,0,1,1,2,3,0,0],
+  [0,0,0,0,4,4,0,1,1,0,0,0],
+  [0,2,2,0,4,4,0,0,1,1,0,0],
+  [0,2,3,0,0,0,1,1,0,0,0,0],
+  [0,0,0,1,1,0,0,0,0,2,0,0],
+  [0,0,1,1,0,0,0,0,2,2,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+];
+
+// ── State ────────────────────────────────────────────────
+const state = {
+  resources: { food: 10, wood: 5, stone: 3, crystal: 0, bond: 0 },
+  fog: Array.from({length: MAP_H}, () => Array(MAP_W).fill(true)),
+  claimed: Array.from({length: MAP_H}, () => Array(MAP_W).fill(false)),
+  workOrder: 'AUTO',
+  pets: [],
+  day: 1,
+  seasonTick: 0,
+  season: 0, // 0=Spring 1=Summer 2=Autumn 3=Winter
+  logMessages: [],
+};
+
+const SEASONS = ['🌸 Spring','☀️ Summer','🍂 Autumn','❄️ Winter'];
+const SEASON_YIELD_MOD = [1.0, 1.5, 1.0, 0.4];
+
+// Reveal starting area
+for (let y = 3; y < 7; y++)
+  for (let x = 4; x < 8; x++) {
+    state.fog[y][x] = false;
+    state.claimed[y][x] = true;
+  }
+
+// ── Logging ──────────────────────────────────────────────
+function log(msg) {
+  document.getElementById('log-bar').textContent = msg;
+}
+
+// ── Work Order ───────────────────────────────────────────
+function setOrder(order) {
+  state.workOrder = order;
+  ['auto','farm','explore','defend'].forEach(o => {
+    document.getElementById('btn-'+o).classList.remove('active');
+  });
+  document.getElementById('btn-'+order.toLowerCase()).classList.add('active');
+  log(`📋 Work order set: ${order}`);
+}
+
+// ── UI Update ────────────────────────────────────────────
+function updateUI() {
+  const r = state.resources;
+  document.getElementById('res-food').textContent   = r.food;
+  document.getElementById('res-wood').textContent   = r.wood;
+  document.getElementById('res-stone').textContent  = r.stone;
+  document.getElementById('res-crystal').textContent= r.crystal;
+  document.getElementById('res-bond').textContent   = r.bond;
+
+  const pct = (state.seasonTick / (SEASON_DAYS * 60)) * 100;
+  document.getElementById('season-progress').style.width = pct + '%';
+  document.getElementById('season-label').textContent = SEASONS[state.season];
+  document.getElementById('day-label').textContent = `Day ${state.day}`;
+}
+
+// ── Pet AI ───────────────────────────────────────────────
+class Pet {
+  constructor(scene, x, y, type = 'worker') {
+    this.scene = scene;
+    this.tx = x; this.ty = y;  // tile pos
+    this.px = x * TILE_SIZE + TILE_SIZE/2;
+    this.py = y * TILE_SIZE + TILE_SIZE/2;
+    this.type = type;
+    this.state = 'idle'; // idle, moving, harvesting, resting
+    this.harvestTimer = 0;
+    this.restTimer = 0;
+    this.stamina = 100;
+    this.targetTx = x; this.targetTy = y;
+    this.id = Math.random().toString(36).slice(2,6);
+    this.bond = 0;
+    this.harvestCount = 0;
+
+    // Graphics
+    this.container = scene.add.container(this.px, this.py);
+    this.shadow = scene.add.ellipse(0, 6, 20, 8, 0x000000, 0.3);
+    this.body = scene.add.text(0, 0, this.getEmoji(), { fontSize: '22px' }).setOrigin(0.5);
+    this.label = scene.add.text(0, -22, `#${this.id}`, { fontSize: '9px', color: '#ffffff', backgroundColor: '#00000066' }).setOrigin(0.5);
+    this.staminaBar = scene.add.rectangle(0, 16, 24, 3, 0x00ff00);
+    this.container.add([this.shadow, this.body, this.label, this.staminaBar]);
+    this.container.setDepth(10);
+  }
+
+  getEmoji() {
+    const map = { worker: '🐕', scout: '🦊', guardian: '🐺', courier: '🐦' };
+    return map[this.type] || '🐕';
+  }
+
+  getSpeed() { return this.type === 'scout' ? 180 : 140; }
+
+  update(delta) {
+    if (this.restTimer > 0) {
+      this.restTimer -= delta;
+      if (this.restTimer <= 0) {
+        this.stamina = 100;
+        this.state = 'idle';
+        log(`😴 Pet #${this.id} rested up, back to work!`);
+      }
+      return;
+    }
+
+    if (this.state === 'idle') this.chooseTask();
+
+    if (this.state === 'moving') this.moveToTarget(delta);
+
+    if (this.state === 'harvesting') {
+      this.harvestTimer -= delta;
+      // Wobble animation
+      this.body.setAngle(Math.sin(Date.now() / 120) * 8);
+      if (this.harvestTimer <= 0) {
+        this.doHarvest();
+        this.state = 'idle';
+        this.body.setAngle(0);
+      }
+    }
+
+    // Stamina bar
+    const sw = Math.max(0, (this.stamina / 100) * 24);
+    this.staminaBar.width = sw;
+    this.staminaBar.fillColor = this.stamina > 50 ? 0x00ff00 : this.stamina > 25 ? 0xffff00 : 0xff0000;
+  }
+
+  chooseTask() {
+    const order = state.workOrder;
+
+    if (this.stamina <= 10) {
+      this.state = 'resting';
+      this.restTimer = 3000;
+      log(`😴 Pet #${this.id} is exhausted, resting...`);
+      return;
+    }
+
+    if (order === 'EXPLORE' || (order === 'AUTO' && this.type === 'scout') || (order === 'AUTO' && Math.random() < 0.3)) {
+      // Find fog tile adjacent to claimed
+      const target = this.findFogEdgeTile();
+      if (target) {
+        this.moveTo(target.x, target.y);
+        return;
+      }
+    }
+
+    if (order === 'FARM' || order === 'AUTO') {
+      const target = this.findHarvestTile();
+      if (target) {
+        this.moveTo(target.x, target.y);
+        return;
+      }
+    }
+
+    // Wander
+    const wx = this.tx + Math.floor(Math.random()*3) - 1;
+    const wy = this.ty + Math.floor(Math.random()*3) - 1;
+    if (this.inBounds(wx, wy) && state.claimed[wy][wx]) {
+      this.moveTo(wx, wy);
+    }
+  }
+
+  findHarvestTile() {
+    let best = null; let bestDist = 999;
+    for (let y = 0; y < MAP_H; y++)
+      for (let x = 0; x < MAP_W; x++) {
+        if (!state.claimed[y][x] || state.fog[y][x]) continue;
+        const tileType = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]];
+        if (!tileType.resource) continue;
+        const dist = Math.abs(x - this.tx) + Math.abs(y - this.ty);
+        if (dist < bestDist) { bestDist = dist; best = {x, y}; }
+      }
+    return best;
+  }
+
+  findFogEdgeTile() {
+    const dirs = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+    for (let y = 0; y < MAP_H; y++)
+      for (let x = 0; x < MAP_W; x++) {
+        if (!state.claimed[y][x]) continue;
+        for (const d of dirs) {
+          const nx = x + d.dx, ny = y + d.dy;
+          if (this.inBounds(nx, ny) && state.fog[ny][nx])
+            return {x: nx, y: ny};
+        }
+      }
+    return null;
+  }
+
+  moveTo(tx, ty) {
+    this.targetTx = tx; this.targetTy = ty;
+    this.state = 'moving';
+  }
+
+  moveToTarget(delta) {
+    const targetPx = this.targetTx * TILE_SIZE + TILE_SIZE/2;
+    const targetPy = this.targetTy * TILE_SIZE + TILE_SIZE/2;
+    const dx = targetPx - this.px;
+    const dy = targetPy - this.py;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const speed = this.getSpeed() * (delta/1000);
+
+    if (dist < speed + 1) {
+      this.px = targetPx; this.py = targetPy;
+      this.tx = this.targetTx; this.ty = this.targetTy;
+      this.container.setPosition(this.px, this.py);
+      this.onArrived();
+    } else {
+      this.px += (dx/dist) * speed;
+      this.py += (dy/dist) * speed;
+      this.container.setPosition(this.px, this.py);
+      // Bob animation
+      this.body.y = Math.sin(Date.now() / 100) * 2;
+    }
+  }
+
+  onArrived() {
+    const x = this.tx, y = this.ty;
+
+    // Reveal fog
+    if (state.fog[y][x]) {
+      state.fog[y][x] = false;
+      state.claimed[y][x] = true;
+      this.scene.redrawTile(x, y);
+      // Also reveal neighbors
+      const dirs = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+      dirs.forEach(d => {
+        const nx = x+d.dx, ny = y+d.dy;
+        if (this.inBounds(nx,ny) && state.fog[ny][nx]) {
+          state.fog[ny][nx] = false;
+          state.claimed[ny][nx] = true;
+          this.scene.redrawTile(nx, ny);
+        }
+      });
+      const tName = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]].label;
+      log(`🔭 Pet #${this.id} discovered ${tName} at (${x},${y})!`);
+      state.resources.bond = Math.min(100, state.resources.bond + 1);
+      this.state = 'idle';
+      return;
+    }
+
+    // Start harvest
+    const tileType = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]];
+    if (tileType.resource) {
+      this.state = 'harvesting';
+      this.harvestTimer = 1500 + Math.random() * 500;
+    } else {
+      this.state = 'idle';
+    }
+  }
+
+  doHarvest() {
+    const x = this.tx, y = this.ty;
+    const tileType = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]];
+    if (!tileType.resource) return;
+
+    const mod = SEASON_YIELD_MOD[state.season];
+    const amount = Math.max(1, Math.round(tileType.yield * mod));
+    state.resources[tileType.resource] += amount;
+    this.stamina = Math.max(0, this.stamina - 8);
+    this.harvestCount++;
+    this.bond = Math.min(100, this.bond + 0.5);
+
+    // Float text
+    const floatTxt = this.scene.add.text(
+      x * TILE_SIZE + TILE_SIZE/2,
+      y * TILE_SIZE,
+      `+${amount}${tileType.emoji}`,
+      { fontSize: '12px', color: '#e2b96f', stroke: '#000', strokeThickness: 2 }
+    ).setOrigin(0.5).setDepth(20);
+    this.scene.tweens.add({
+      targets: floatTxt, y: y * TILE_SIZE - 30, alpha: 0,
+      duration: 900, onComplete: () => floatTxt.destroy()
+    });
+
+    if (this.harvestCount % 5 === 0)
+      log(`🌾 Pet #${this.id} harvested ${amount} ${tileType.resource}! (${this.harvestCount} total)`);
+  }
+
+  inBounds(x, y) { return x >= 0 && x < MAP_W && y >= 0 && y < MAP_H; }
+  destroy() { this.container.destroy(); }
+}
+
+// ── Phaser Scene ─────────────────────────────────────────
+class GameScene extends Phaser.Scene {
+  constructor() { super({ key: 'GameScene' }); }
+
+  create() {
+    this.tileGraphics = [];
+    this.tileTexts = [];
+
+    // Draw all tiles
+    for (let y = 0; y < MAP_H; y++) {
+      this.tileGraphics[y] = [];
+      this.tileTexts[y] = [];
+      for (let x = 0; x < MAP_W; x++) {
+        const g = this.add.graphics();
+        this.tileGraphics[y][x] = g;
+        const t = this.add.text(
+          x * TILE_SIZE + TILE_SIZE/2,
+          y * TILE_SIZE + TILE_SIZE/2,
+          '', { fontSize: '20px' }
+        ).setOrigin(0.5).setDepth(2);
+        this.tileTexts[y][x] = t;
+        this.redrawTile(x, y);
+      }
+    }
+
+    // Grid lines
+    const grid = this.add.graphics();
+    grid.lineStyle(1, 0x000000, 0.2);
+    for (let x = 0; x <= MAP_W; x++) { grid.moveTo(x*TILE_SIZE,0); grid.lineTo(x*TILE_SIZE,MAP_H*TILE_SIZE); }
+    for (let y = 0; y <= MAP_H; y++) { grid.moveTo(0,y*TILE_SIZE); grid.lineTo(MAP_W*TILE_SIZE,y*TILE_SIZE); }
+    grid.strokePath();
+    grid.setDepth(1);
+
+    // Click to claim adjacent tile
+    this.input.on('pointerdown', (ptr) => {
+      const tx = Math.floor(ptr.x / TILE_SIZE);
+      const ty = Math.floor(ptr.y / TILE_SIZE);
+      if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return;
+      this.tryClaimTile(tx, ty);
+    });
+
+    // Spawn initial pet
+    state.pets.push(new Pet(this, 6, 5, 'worker'));
+    log('🐾 Worker pet hatched! Watching territory...');
+
+    // Season tick
+    this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => {
+        state.seasonTick++;
+        if (state.seasonTick % 60 === 0) {
+          state.day++;
+          if (state.day > SEASON_DAYS) {
+            state.day = 1;
+            state.season = (state.season + 1) % 4;
+            state.seasonTick = 0;
+            log(`🌍 Season changed to ${SEASONS[state.season]}!`);
+          }
+          state.resources.bond = Math.min(100, state.resources.bond + 1);
+        }
+        updateUI();
+      }
+    });
+  }
+
+  redrawTile(x, y) {
+    const g = this.tileGraphics[y][x];
+    const t = this.tileTexts[y][x];
+    g.clear();
+    const isFog = state.fog[y][x];
+    const isClaimed = state.claimed[y][x];
+    const tileId = TILE_MAP_LAYOUT[y][x];
+    const tileType = Object.values(TILES)[tileId];
+
+    if (isFog) {
+      // Adjacent to claimed = dark fog, else pure black
+      const isEdge = this.isAdjacentToClaimed(x, y);
+      g.fillStyle(isEdge ? 0x1a1a2e : 0x0d0d1a, 1);
+      g.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      t.setText(isEdge ? '?' : '');
+      t.setAlpha(0.3);
+    } else {
+      const col = isClaimed ? tileType.color : tileType.darkColor;
+      g.fillStyle(col, 1);
+      g.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      if (isClaimed) {
+        g.lineStyle(1, 0xffffff, 0.15);
+        g.strokeRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      }
+      t.setText(tileType.emoji);
+      t.setAlpha(isClaimed ? 1 : 0.5);
+    }
+    g.setDepth(0);
+  }
+
+  isAdjacentToClaimed(x, y) {
+    const dirs = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+    return dirs.some(d => {
+      const nx = x+d.dx, ny = y+d.dy;
+      return nx>=0 && nx<MAP_W && ny>=0 && ny<MAP_H && state.claimed[ny][nx];
+    });
+  }
+
+  tryClaimTile(x, y) {
+    if (!state.fog[y][x] && !state.claimed[y][x]) {
+      log(`❌ Tile (${x},${y}) not reachable yet`);
+      return;
+    }
+    if (state.claimed[y][x]) return;
+    if (!this.isAdjacentToClaimed(x, y)) {
+      log(`❌ Can only claim tiles adjacent to your territory!`);
+      return;
+    }
+    const cost = { food: 5, wood: 3 };
+    if (state.resources.food < cost.food || state.resources.wood < cost.wood) {
+      log(`❌ Need ${cost.food}🌾 ${cost.wood}🪵 to claim tile`);
+      return;
+    }
+    state.resources.food -= cost.food;
+    state.resources.wood -= cost.wood;
+    state.fog[y][x] = false;
+    state.claimed[y][x] = true;
+    this.redrawTile(x, y);
+    const tName = Object.values(TILES)[TILE_MAP_LAYOUT[y][x]].label;
+    log(`🏴 Claimed ${tName} tile at (${x},${y})! Cost: -${cost.food}🌾 -${cost.wood}🪵`);
+    updateUI();
+  }
+
+  update(time, delta) {
+    state.pets.forEach(p => p.update(delta));
+  }
+}
+
+// ── Add Pet ───────────────────────────────────────────────
+function addPet() {
+  if (state.resources.food < 20) {
+    log('❌ Need 20🌾 to hatch a new pet!');
+    return;
+  }
+  state.resources.food -= 20;
+  const types = ['worker', 'scout', 'worker', 'guardian'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  const emojis = { worker: '🐕', scout: '🦊', guardian: '🐺' };
+
+  // Find a claimed tile to spawn on
+  let sx = 6, sy = 5;
+  for (let y = 0; y < MAP_H; y++)
+    for (let x = 0; x < MAP_W; x++)
+      if (state.claimed[y][x] && state.pets.length === 0) { sx = x; sy = y; }
+
+  const scene = game.scene.getScene('GameScene');
+  state.pets.push(new Pet(scene, sx, sy, type));
+  log(`🥚 New ${type} pet hatched! (${emojis[type]}) -20🌾`);
+  updateUI();
+}
+
+// ── Launch ────────────────────────────────────────────────
+const game = new Phaser.Game({
+  type: Phaser.AUTO,
+  width: CANVAS_W,
+  height: CANVAS_H,
+  backgroundColor: '#1a1a2e',
+  parent: 'game-container',
+  scene: GameScene,
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
+});
+</script>
+</body>
+</html>
