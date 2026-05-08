@@ -1,68 +1,63 @@
-# Game Ý Tưởng: Thế Giới Mở - Chiến Thuật Lãnh Địa
+# Game Design Document — Open World Land Strategy (Brainstorm Notes)
+**Version:** 0.1 — Raw Brainstorm  
+**Source:** Chat session 2026-05-08  
+**Status:** Raw ideas → merged into GDD Territory Pet
 
-**Ingested:** 2026-05-08
-**Source:** Huy Pham (Telegram)
+---
 
-## Concept
+## Original Concept Ideas
 
-Game chiến thuật thế giới mở, bản đồ dạng bàn cờ 1000x1000 cell. Thế giới tu tiên / dị giới (không phải map VN).
+### 1. "Terra Claim" — Real-time land conquest
+- Map procedural, chia ô hex
+- Mỗi ô có resource type (forest, ore, water)
+- Build outposts → expand influence radius
+- Other players/factions counter-claim → chiến tranh kinh tế
 
-## Core Loop
+### 2. "Epoch Rise" — Civilization từ stone age
+- Start với 1 settler, open world khổng lồ
+- Khám phá terrain → unlock tech
+- Diplomacy, trade routes, war — tất cả real-time
+- First-person exploration kết hợp macro strategy
 
-1. Đăng ký → nhận quà tân thủ (random ô đất miễn phí)
-2. Quay số bóc thăm → mua ô đất (29k = vàng + 3 lượt rút)
-3. Khai thác tài nguyên theo ô đất đã sở hữu
-4. Build quân đội → đánh chiếm vùng đất khác
-5. Quay lại bước 2 — monetization loop
+### 3. "Fractured Lands" — Post-apocalypse faction war
+- Đất đai bị ô nhiễm, phải "cleanse" để dùng
+- Land = tài nguyên khan hiếm → tranh giành căng
+- Factions có ideology khác nhau → ảnh hưởng playstyle
 
-## Map Design
+---
 
-- Grid 1000x1000 cells
-- Mỗi cell có: `type` / `status` / `state` (3 fields riêng biệt)
-- Cell types: núi đá, vực thẳm, biển, sông, đầm lầy (static obstacles), đất bình thường, đất đặc biệt
-- Obstacle cells: không thể mua, không thể đi qua → ép user mua đất lân cận hoặc đi xuyên lãnh địa người khác → sinh mâu thuẫn, thuế lãnh địa
-- Một số obstacle có thể cải tạo bởi user
+## Mechanics Researched (from competitor games)
 
-## Monetization
+| Mechanic | From | Notes |
+|----------|------|-------|
+| Organic zoning | Foundation | Paint zone → AI tự build |
+| Per-plot resource | Manor Lords | Hidden profile, reveal khi survey |
+| Seasonal scarcity | Northgard | Winter giảm yield |
+| Biome-based economy | Against the Storm | Biome → tech tree unlock |
+| Species preference | Against the Storm | Faction asymmetric |
+| Land memory | Dwarf Fortress | Lịch sử đất → haunted/fertile |
+| Terrain deformation | Minecraft/Valheim | Permanent terrain change |
+| Influence radius | Civilization VI | City emit influence |
+| Land degradation | Frostpunk 2 | Overcrop → tile kiệt |
+| Supply chain distance | Anno 1800 | Xa capital = cao cost |
+| Real estate speculation | Offworld Trading Co. | Land price fluctuates |
+| Fog of war + scouting | Total War | Intel warfare |
+| Diplomacy over land | Crusader Kings III | Marry/buy/inherit đất |
+| Procedural events | RimWorld | Random events on specific land |
+| Vertical land | Cultures series | Altitude bonus |
 
-- 29k VND = vàng + 3 lượt rút đất
-- Tân thủ: random 1 ô đất miễn phí
-- Quay số bóc thăm random ô đất
+---
 
-## Social & Meta
+## Target: PvP Mobile
 
-- Cắm cờ lãnh địa (cá nhân hóa ô đất)
-- Thu thuế khi người khác đi qua lãnh địa
-- Mâu thuẫn cá nhân, thể hiện sức mạnh, quyền lực
+**Core Loop:**
+```
+Explore → Scout → Claim → Build → Defend/Attack → Trade
+```
 
-## Gameplay
+**Competitors to beat:**
+- Rise of Kingdoms (land generic)
+- Clash of Clans (no open world)
+- Evony (old UX)
 
-- Bot characters diễn cảnh sinh hoạt khai thác tài nguyên (không phải user điều khiển trực tiếp)
-- Kết hợp nhiều loại chiến thuật nhưng đơn giản hoá
-- Casual, giết thời gian, cuốn
-
-## Phase 1 Scope
-
-Bản đồ nhỏ: 1 vương quốc. Validate core loop trước khi scale.
-
-## Phase 1 Must-Haves (Critical Loop)
-
-- Mua đất (quay số) — cốt lõi monetization
-- Khai thác tài nguyên — reason to log in daily
-- Build quân — progression system
-- Đánh chiếm đất — conflict & engagement driver
-- Cắm cờ — personalization & identity
-- Thuế lãnh địa — passive income loop, tăng conflict
-
-## Technical Notes
-
-- Cell schema: `{ type, status, state, owner_id, flag, resources }`
-- AI-generated cell type structure → user review → finalize
-- Map rendering: grid-based, mark owned cells
-
-## Open Questions
-
-- Economy balance: resource rates vs upgrade costs?
-- PvP protection cho tân thủ?
-- Phase 1 map size bao nhiêu ô là đủ?
-- Offline progression hay chỉ khi online?
+**Gap:** Land có character thật (hidden resources, memory, seasonal)
