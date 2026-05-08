@@ -1,17 +1,150 @@
 {
+  "agents": {
+    "defaults": {
+      "elevatedDefault": "full",
+      "model": {
+        "primary": "autonomous/claude-opus-4-6"
+      },
+      "models": {
+        "autonomous/claude-haiku-4-5": {},
+        "autonomous/claude-opus-4-6": {},
+        "autonomous/minimax/minimax-m2.7": {},
+        "autonomous/qwen/qwen3.6-plus": {},
+        "autonomous/z-ai/glm-5.1": {}
+      },
+      "sandbox": { "mode": "off" },
+      "workspace": "/root/.openclaw/workspace"
+    }
+  },
   "channels": {
     "telegram": {
       "enabled": true,
       "botToken": "YOUR_BOT_TOKEN",
       "dmPolicy": "allowlist",
-      "allowFrom": ["YOUR_TELEGRAM_USER_ID"],
+      "allowFrom": ["YOUR_TELEGRAM_USER_ID", "-YOUR_GROUP_ID"],
       "groupPolicy": "allowlist",
+      "groupAllowFrom": ["YOUR_TELEGRAM_USER_ID"],
       "groups": {
-        "YOUR_GROUP_ID": {
+        "-YOUR_GROUP_ID": {
           "requireMention": true
         }
       },
-      "groupAllowFrom": ["YOUR_TELEGRAM_USER_ID"]
+      "streaming": "partial"
     }
+  },
+  "commands": {
+    "bash": true,
+    "bashForegroundMs": 2000,
+    "config": true,
+    "debug": true,
+    "native": true,
+    "nativeSkills": true,
+    "ownerAllowFrom": ["*"],
+    "ownerDisplay": "raw",
+    "restart": true,
+    "text": true,
+    "useAccessGroups": false
+  },
+  "gateway": {
+    "auth": {
+      "mode": "token",
+      "token": "YOUR_GATEWAY_TOKEN"
+    },
+    "bind": "loopback",
+    "mode": "local",
+    "port": 18789,
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    }
+  },
+  "messages": {
+    "ackReactionScope": "all",
+    "removeAckAfterReply": true,
+    "responsePrefix": "auto"
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "autonomous": {
+        "api": "anthropic-messages",
+        "apiKey": "YOUR_API_KEY",
+        "baseUrl": "https://campaign-api.staging.autonomousdev.xyz/api/v1/ai/",
+        "models": [
+          {
+            "contextWindow": 500000,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "claude-opus-4-6",
+            "input": ["text"],
+            "maxTokens": 64000,
+            "name": "claude-opus-4-6",
+            "reasoning": true
+          },
+          {
+            "contextWindow": 200000,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "claude-haiku-4-5",
+            "input": ["text"],
+            "maxTokens": 64000,
+            "name": "claude-haiku-4-5",
+            "reasoning": true
+          },
+          {
+            "contextWindow": 200000,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "minimax/minimax-m2.7",
+            "input": ["text"],
+            "maxTokens": 200000,
+            "name": "minimax/minimax-m2.7",
+            "reasoning": false
+          },
+          {
+            "contextWindow": 200000,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "z-ai/glm-5.1",
+            "input": ["text"],
+            "maxTokens": 200000,
+            "name": "z-ai/glm-5.1",
+            "reasoning": false
+          },
+          {
+            "contextWindow": 200000,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "qwen/qwen3.6-plus",
+            "input": ["text"],
+            "maxTokens": 200000,
+            "name": "qwen/qwen3.6-plus",
+            "reasoning": false
+          }
+        ]
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": { "enabled": true }
+    }
+  },
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "skills": {
+    "install": { "nodeManager": "npm" },
+    "load": {
+      "extraDirs": ["/root/.openclaw/workspace/skills"],
+      "watch": true
+    }
+  },
+  "tools": {
+    "elevated": {
+      "allowFrom": { "telegram": ["*"] },
+      "enabled": true
+    },
+    "exec": {
+      "ask": "off",
+      "host": "gateway",
+      "security": "full"
+    },
+    "profile": "full"
   }
 }
