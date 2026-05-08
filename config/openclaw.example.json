@@ -1,44 +1,17 @@
 {
-  "agents": {
-    "defaults": {
-      "elevatedDefault": "full",
-      "model": {
-        "primary": "autonomous/claude-opus-4-6"
-      },
-      "sandbox": { "mode": "off" },
-      "workspace": "/root/.openclaw/workspace"
-    }
-  },
   "channels": {
     "telegram": {
-      "allowFrom": ["YOUR_TELEGRAM_USER_ID", "YOUR_GROUP_ID"],
+      "enabled": true,
       "botToken": "YOUR_BOT_TOKEN",
       "dmPolicy": "allowlist",
-      "enabled": true,
-      "groupAllowFrom": ["YOUR_GROUP_ID"],
-      "groupPolicy": "allowlist"
+      "allowFrom": ["YOUR_TELEGRAM_USER_ID"],
+      "groupPolicy": "allowlist",
+      "groups": {
+        "YOUR_GROUP_ID": {
+          "requireMention": true
+        }
+      },
+      "groupAllowFrom": ["YOUR_TELEGRAM_USER_ID"]
     }
-  },
-  "gateway": {
-    "auth": { "mode": "token", "token": "YOUR_GATEWAY_TOKEN" },
-    "bind": "loopback",
-    "mode": "local",
-    "port": 18789
-  },
-  "models": {
-    "mode": "merge",
-    "providers": {
-      "autonomous": {
-        "api": "anthropic-messages",
-        "apiKey": "YOUR_API_KEY",
-        "baseUrl": "https://campaign-api.staging.autonomousdev.xyz/api/v1/ai/"
-      }
-    }
-  },
-  "plugins": { "entries": { "telegram": { "enabled": true } } },
-  "tools": {
-    "elevated": { "allowFrom": { "telegram": ["*"] }, "enabled": true },
-    "exec": { "ask": "off", "host": "gateway", "security": "full" },
-    "profile": "full"
   }
 }
